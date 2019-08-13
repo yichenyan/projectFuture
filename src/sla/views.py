@@ -32,17 +32,13 @@ def UploadExcel(request):
     myform = UploadOpsDataForm(request.POST or None, request.FILES or None)
     if myform.is_valid():
         uploaded_excel = request.FILES.get('myfile')  # myfile是form中定义的FileField的值，如果在template的template中即form中的name属性
-        print(uploaded_excel)
+        #print(uploaded_excel)
 
         excel_type = uploaded_excel.name.split('.')[-1].strip()  # 读取一个excel文件的扩展名，xls还是xlsx等。。。
         if excel_type in ['xls']:
             excel_data = xlrd.open_workbook(filename=None, file_contents=uploaded_excel.read(), formatting_info=True)   # xls文件
-            print('1')
-            #print(excel_data.sheets())
         elif excel_type in ['xlsx']:
             excel_data = xlrd.open_workbook(filename=None, file_contents=uploaded_excel.read())
-            #print(excel_data.sheets())
-            print('2')
         else:
             print("Are you sure it is an EXCEL file?")
             excel_data = False
@@ -65,7 +61,7 @@ def UploadExcel(request):
                     target_data = row_values[9]  # 关注这个数据：flight_id
                     value_existed = DartOpsReport.objects.filter(flight_id = symbol_check(target_data))
                     if str(target_data).strip() == '' or value_existed.count():
-                        print("This is not a valid record or it has existed in the database...")
+                        print("This is not a valid record, or, it has existed in the database...")
                         continue
 
                     # 确认插入的数据不会重复后，将该行excel数据插入数据表中，其中的列来自于并同名与models，必须贴合实际excel中列的含义，避免excel格式变更带来的问题
@@ -140,12 +136,12 @@ def plot_basic(df,gen_tag,airline):
         #color_avail = 'seagreen'
         color_avail = 'lightcoral'
 
+    # 生成一个可用率低于一定值的df，避免显示过多项，如果不存在就避开生成plot
     df_avail = df.loc[df['Availability_decimal'] <= .98]
-    print(df_avail)
     if df_avail.empty:
         return False
-
-
+    
+    # 在有符合条件的行的情况下
     operator_list = df_avail['Operator'].tolist()
     aircraft_list = df_avail['Aircraft'].tolist()
     flight_count = df_avail['Flight_Count'].tolist()
@@ -155,10 +151,9 @@ def plot_basic(df,gen_tag,airline):
     latency_list = df_avail['Latency'].tolist()
     packet_loss_list = df_avail['Packet_Loss'].tolist()
 
-    #if len(aircraft_list)>30:
-    #    aircraft_list = aircraft_list[:30]
-
-    source = ColumnDataSource(data=dict(aircraft_list=aircraft_list,
+    # 此处需整理TODO
+    source = ColumnDataSource(data=dict(
+        aircraft_list=aircraft_list,
         avail_decimal_list=avail_decimal_list,
         avail_percent_list=avail_percent_list,
         flight_count=flight_count,
@@ -167,6 +162,7 @@ def plot_basic(df,gen_tag,airline):
         ))
 
     TOOLTIPS = [
+        ("Aircraft","@aircraft_list"),
         ("Availability","@avail_percent_list"),
         ("Flt Count","@flight_count"),
         ("Latency","@latency_list"),
@@ -202,7 +198,7 @@ def plot_basic(df,gen_tag,airline):
     # 主轴副轴标签字体设置
     p.yaxis.axis_label_text_font_style = "bold"
     # 隐藏主轴标签
-    p.axis.visible = False
+    p.yaxis.visible = False
 
     label_avail = LabelSet(x='aircraft_list', y='avail_decimal_list',\
         text='avail_percent_list',\
@@ -338,7 +334,7 @@ def create_overview_plot(df):
         "SLA_Actual": "SLA_Actual",\
         "SLA_Expected": "SLA_Expected"
         })
-    print(sla_report)
+    #print(sla_report)
 
     # Convert dataframe column data to a list -- the tolist() function
     operator_list = sla_report['Operator'].tolist()
