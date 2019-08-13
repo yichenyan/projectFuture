@@ -130,17 +130,145 @@ def decimal2percent(v, precision='0.2'):
 def percent2decimal(x):
     return float(x.strip('%'))/100
 
+def plot_basic(df,gen_tag,airline):
+    
+    color_flight_count = '#fdb44b'
+    if gen_tag == 'Gen1':
+        color_avail = 'steelblue'
+        #color_avail = 'lightcoral'
+    else:
+        #color_avail = 'seagreen'
+        color_avail = 'lightcoral'
 
+    df_avail = df.loc[df['Availability_decimal'] <= .98]
+    print(df_avail)
+    if df_avail.empty:
+        return False
+
+
+    operator_list = df_avail['Operator'].tolist()
+    aircraft_list = df_avail['Aircraft'].tolist()
+    flight_count = df_avail['Flight_Count'].tolist()
+    gen_list = list(df_avail['Gen'].tolist())
+    avail_percent_list = df_avail['Availability'].tolist()
+    avail_decimal_list = df_avail['Availability_decimal'].tolist()
+    latency_list = df_avail['Latency'].tolist()
+    packet_loss_list = df_avail['Packet_Loss'].tolist()
+
+    #if len(aircraft_list)>30:
+    #    aircraft_list = aircraft_list[:30]
+
+    source = ColumnDataSource(data=dict(aircraft_list=aircraft_list,
+        avail_decimal_list=avail_decimal_list,
+        avail_percent_list=avail_percent_list,
+        flight_count=flight_count,
+        latency_list=latency_list,
+        packet_loss_list=packet_loss_list,
+        ))
+
+    TOOLTIPS = [
+        ("Availability","@avail_percent_list"),
+        ("Flt Count","@flight_count"),
+        ("Latency","@latency_list"),
+        ("Pkt Loss","@packet_loss_list"),
+    ]
+    
+    if len(aircraft_list)>30:
+        p = figure(x_range=aircraft_list,plot_height=300,plot_width=30*len(aircraft_list),
+            title="{airline} {gen_tag} SLA Bottom Tails".format(airline=airline,gen_tag=gen_tag,
+            tooltips=TOOLTIPS))
+    elif len(aircraft_list)<4:
+        p = figure(x_range=aircraft_list,plot_height=300,plot_width=150*len(aircraft_list),
+            title="{airline} {gen_tag} SLA Bottom Tails".format(airline=airline,gen_tag=gen_tag,
+            tooltips=TOOLTIPS))
+    else:
+        p = figure(x_range=aircraft_list,plot_height=300,plot_width=60*len(aircraft_list),
+            title="{airline} {gen_tag} SLA Bottom Tails".format(airline=airline,gen_tag=gen_tag,
+            tooltips=TOOLTIPS))
+
+
+    
+
+    # 定义主轴(y轴)图形
+    p.vbar(x="aircraft_list", top="avail_decimal_list",width=0.8,
+        fill_color=color_avail,line_color=color_avail,source=source,legend="Availability")
+
+    # 定义主轴范围
+    p.y_range = Range1d(start=int((min(avail_decimal_list))*10)/10, end=max(avail_decimal_list)+0.005)
+    # 主轴标签改为百分比格式
+    p.yaxis.formatter = NumeralTickFormatter(format="0%")
+    # 定义主轴标签名
+    #p.yaxis.axis_label = "Flight Time Availability"
+    # 主轴副轴标签字体设置
+    p.yaxis.axis_label_text_font_style = "bold"
+    # 隐藏主轴标签
+    p.axis.visible = False
+
+    label_avail = LabelSet(x='aircraft_list', y='avail_decimal_list',\
+        text='avail_percent_list',\
+        source=source,\
+        render_mode='canvas',\
+        text_font_size='6pt',angle=pi/2,text_color='white',\
+        x_offset=4, y_offset=-30)
+
+    p.add_layout(label_avail)
+
+    # 给副轴数据点插入标签，还没搞懂。。。
+    
+    # 定义多个副轴(y轴)的名字和范围
+    p.extra_y_ranges = {"Flight_Count": Range1d(start=0, end=200),\
+        "Latency": Range1d(start=500, end=1500),
+        "Packet_Loss": Range1d(start=0, end=10),
+        "Availability": Range1d(start=int((min(avail_decimal_list))*10)/10, end=1)}
+    # 定义各副轴的图形和标签
+    p.circle(x="aircraft_list",y="flight_count",color='darkgray',y_range_name="Flight_Count",source=source,legend="Flt Count")
+    p.square(x="aircraft_list",y="latency_list",color='gold',y_range_name="Latency",source=source,legend="Latency")
+    p.x(x="aircraft_list",y="packet_loss_list",color='navy',y_range_name="Packet_Loss",source=source,legend="Pkt Loss")
+
+    
+
+    # 将副轴加入现有图表中
+    #p.add_layout(LinearAxis(y_range_name="Flight_Count",axis_label='Flight Count'), 'right')
+    #p.add_layout(LinearAxis(y_range_name="Packet_Loss",axis_label='x: Packet Loss'), 'right')
+
+    p.add_tools(HoverTool(tooltips=TOOLTIPS))
+
+    # 主轴副轴标签字体设置
+    p.yaxis.axis_label_text_font_style = "bold"
+
+    
+    # x轴文字标签旋转
+    p.xaxis.major_label_orientation = 1
+    # 取消网格线
+    p.xgrid.grid_line_color = None
+    p.ygrid.grid_line_color = None
+
+    # 设置legend
+    p.legend.orientation = "horizontal"
+    p.legend.location = "top_left"
+    p.legend.label_text_font_size = "6pt"
+    p.legend.border_line_width = 0
+    p.legend.border_line_color = "navy"
+    p.legend.border_line_alpha = 0
+    p.legend.click_policy="hide"
+    p.legend.background_fill_color = None
+    p.legend.background_fill_alpha = 0
+    p.legend.spacing = 2
+    p.legend.padding = 2
+    p.legend.margin = 2
+
+
+    return p
 
 def create_detailed_plots(df):
-
-    #color_avail_gen1 = '#005792'
+    color_avail = '#005792'
     color_avail_gen1 = 'steelblue'
-    #color_avail_gen3 = '#cf455c'
+    #color_avail = '#cf455c'
     color_avail_gen3 = 'seagreen'
     color_flight_count = '#fdb44b'
 
     airline_list = df.operator.unique().tolist()
+    plot_list = []
     for airline in airline_list:
         sla_airline = df[df.operator == airline].pivot_table(index=['aircraft','bc_gen'],\
             values=["connected_sec","connected_sec_expected","flight_num","latency","packet_loss"],fill_value=0,\
@@ -167,160 +295,25 @@ def create_detailed_plots(df):
         sla_report_Gen3 = sla_report_sorted[sla_report['Gen']=="GEN3"]
         #print(sla_report_Gen1,sla_report_Gen3)
         
-        plot_list = []
+        
         # Convert dataframe column data to a list -- the tolist() function
         if sla_report_Gen1.empty == False:  # Gen1机队存在
-            operator_list_gen1 = sla_report_Gen1['Operator'].tolist()
-            aircraft_list_gen1 = sla_report_Gen1['Aircraft'].tolist()
-            flight_count_gen1 = sla_report_Gen1['Flight_Count'].tolist()
-            gen_list_gen1 = list(sla_report_Gen1['Gen'].tolist())
-            avail_percent_list_gen1 = sla_report_Gen1['Availability'].tolist()
-            avail_decimal_list_gen1 = sla_report_Gen1['Availability_decimal'].tolist()
-            latency_list_gen1 = sla_report_Gen1['Latency'].tolist()
-            packet_loss_list_gen1 = sla_report_Gen1['Packet_Loss'].tolist()
+            gen_tag = "Gen1"
+            plot_gen1 = plot_basic(sla_report_Gen1,gen_tag,airline)
+            if plot_gen1:
+                plot_list.append(plot_gen1)
             
-            p_gen1 = figure(x_range=aircraft_list_gen1,plot_height=300,plot_width=18*len(aircraft_list_gen1)+100,\
-                title="{airline} Gen1 SLA Details".format(airline=airline))
-
-            # 定义主轴(y轴)图形
-            p_gen1.vbar(aircraft_list_gen1, top=avail_decimal_list_gen1,width=0.8,\
-                fill_color=color_avail_gen1,line_color=color_avail_gen1,legend='FT Avail')
-            # 定义主轴范围
-            p_gen1.y_range = Range1d(start=int((min(avail_decimal_list_gen1))*10)/10, end=1)
-            # 主轴标签改为百分比格式
-            p_gen1.yaxis.formatter = NumeralTickFormatter(format="0%")
-            # 定义主轴标签名
-            #p_gen1.yaxis.axis_label = "Flight Time Availability"
-
-            # 给主轴的每个数据点插入标签
-            source = ColumnDataSource(data=dict(aircraft_list_gen1=aircraft_list_gen1, \
-                avail_decimal_list_gen1=avail_decimal_list_gen1, \
-                avail_percent_list_gen1=avail_percent_list_gen1,\
-                flight_count_gen1=flight_count_gen1))
-
-            label_avail = LabelSet(x='aircraft_list_gen1', y='avail_decimal_list_gen1',\
-                text='avail_percent_list_gen1',\
-                source=source,\
-                render_mode='canvas',\
-                text_font_size='6pt',angle=pi/2,text_color='white',\
-                x_offset=4, y_offset=-30)
-
-            p_gen1.add_layout(label_avail)
-
-            # 给副轴数据点插入标签，还没搞懂。。。
-            """
-            label_flight_count = LabelSet(x='aircraft_list_gen1', y='flight_count_gen1',\
-                text='flight_count_gen1',\
-                source=source,\
-                render_mode='css',\
-                text_font_size='6pt',text_color=color_flight_count,\
-                x_offset=4, y_offset=-30
-                )
-            """
-
             
-            # 定义多个副轴(y轴)的名字和范围
-            p_gen1.extra_y_ranges = {"Flight_Count": Range1d(start=0, end=200),\
-                "Latency": Range1d(start=500, end=1500),
-                "Packet_Loss": Range1d(start=0, end=10)}
-            # 定义各副轴的图形和标签
-            p_gen1.circle(aircraft_list_gen1,flight_count_gen1,color='darkgray',y_range_name="Flight_Count",legend='Flight Count')
-            p_gen1.square(aircraft_list_gen1,latency_list_gen1,color='gold',y_range_name="Latency",legend='Latency')
-            p_gen1.x(aircraft_list_gen1,packet_loss_list_gen1,color='black',y_range_name="Packet_Loss",legend='Packet Loss')
-
-            # 将副轴加入现有图表中
-            #p_gen1.add_layout(LinearAxis(y_range_name="Flight_Count",axis_label='Flight Count'), 'right')
-
-
-            # 主轴副轴标签字体设置
-            p_gen1.yaxis.axis_label_text_font_style = "bold"
-            
-            # x轴文字标签旋转
-            p_gen1.xaxis.major_label_orientation = 1
-            # x轴取消网格线
-            p_gen1.xgrid.grid_line_color = None
-
-            # 设置legend
-            p_gen1.legend.orientation = "horizontal"
-            p_gen1.legend.location = "top_left"
-            p_gen1.legend.label_text_font_size = "6pt"
-            p_gen1.legend.border_line_alpha = 0.5
-
-
-            plot_list.append(p_gen1)
 
         if sla_report_Gen3.empty == False:  # Gen3机队存在
-            operator_list_gen3 = sla_report_Gen3['Operator'].tolist()
-            aircraft_list_gen3 = sla_report_Gen3['Aircraft'].tolist()
-            flight_count_gen3 = sla_report_Gen3['Flight_Count'].tolist()
-            gen_list_gen3 = list(sla_report_Gen3['Gen'].tolist())
-            avail_percent_list_gen3 = sla_report_Gen3['Availability'].tolist()
-            avail_decimal_list_gen3 = sla_report_Gen3['Availability_decimal'].tolist()
-            latency_list_gen3 = sla_report_Gen3['Latency'].tolist()
-            packet_loss_list_gen3 = sla_report_Gen3['Packet_Loss'].tolist()
-            #print(aircraft_list_gen3)
-
-            p_gen3 = figure(x_range=aircraft_list_gen3,plot_height=300,plot_width=18*len(aircraft_list_gen3)+100,\
-                title="{airline} Gen3 SLA Details".format(airline=airline))
-
-            # 定义主轴(y轴)图形
-            p_gen3.vbar(aircraft_list_gen3, top=avail_decimal_list_gen3,width=0.8,fill_color=color_avail_gen3,line_color=color_avail_gen3,legend='Availability')
-            # 定义主轴范围
-            p_gen3.y_range = Range1d(start=int((min(avail_decimal_list_gen3))*10)/10, end=1)
-            # 主轴标签改为百分比格式
-            p_gen3.yaxis.formatter = NumeralTickFormatter(format="0%")
-            # 定义主轴标签名
-            #p_gen3.yaxis.axis_label = "Flight Time Availability"
-
-            # 给主轴的每个数据点插入标签
-            source = ColumnDataSource(data=dict(aircraft_list_gen3=aircraft_list_gen3, \
-                avail_decimal_list_gen3=avail_decimal_list_gen3, \
-                avail_percent_list_gen3=avail_percent_list_gen3,\
-                flight_count_gen3=flight_count_gen3))
-
-            label_avail = LabelSet(x='aircraft_list_gen3', y='avail_decimal_list_gen3',\
-                text='avail_percent_list_gen3',\
-                source=source,\
-                render_mode='canvas',\
-                text_font_size='6pt',angle=pi/2,text_color='white',\
-                x_offset=4, y_offset=-30)
-
-            p_gen3.add_layout(label_avail)
             
+            gen_tag = "Gen3"
+            plot_gen3 = plot_basic(sla_report_Gen3,gen_tag,airline)
+            if plot_gen3:
+                plot_list.append(plot_gen3)
 
-            # 定义多个副轴(y轴)的名字和范围
-            p_gen3.extra_y_ranges = {"Flight_Count": Range1d(start=0, end=200),\
-                "Latency": Range1d(start=500, end=1500),
-                "Packet_Loss": Range1d(start=0, end=10)}
-            # 定义各副轴的图形和标签
-            p_gen3.circle(aircraft_list_gen3,flight_count_gen3,color='darkgray',y_range_name="Flight_Count",legend='Flight Count')
-            p_gen3.square(aircraft_list_gen3,latency_list_gen3,color='gold',y_range_name="Latency",legend='Latency')
-            p_gen3.x(aircraft_list_gen3,packet_loss_list_gen3,color='black',y_range_name="Packet_Loss",legend='Packet Loss')
-
-            # 将副轴加入现有图表中
-            #p_gen3.add_layout(LinearAxis(y_range_name="Flight_Count",axis_label='Flight Count'), 'right')
-            #p_gen3.add_layout(LinearAxis(y_range_name="Flight_Count"), 'right')
-
-
-            # 主轴副轴标签字体设置
-            p_gen3.yaxis.axis_label_text_font_style = "bold"
-            # x轴文字标签旋转
-            p_gen3.xaxis.major_label_orientation = 1
-            # x轴取消网格线
-            p_gen3.xgrid.grid_line_color = None
-
-            # 设置legend
-            p_gen3.legend.orientation = "horizontal"
-            p_gen3.legend.location = "bottom_right"
-            p_gen3.legend.label_text_font_size = "6pt"
-            p_gen3.legend.border_line_alpha = 0.5
-
-            plot_list.append(p_gen3)
-
+    return column(plot_list)
         
-        return column(plot_list)
-        
-        break
 
 
 def create_overview_plot(df):
