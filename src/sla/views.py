@@ -137,9 +137,11 @@ def plot_basic(df,gen_tag,airline):
         color_avail = 'lightcoral'
 
     # 生成一个可用率低于一定值的df，避免显示过多项，如果不存在就避开生成plot
-    df_avail = df.loc[df['Availability_decimal'] <= .98]
+    df_avail = df.loc[df['Availability_decimal'] <= .95]
     if df_avail.empty:
         return False
+
+
     
     # 在有符合条件的行的情况下
     operator_list = df_avail['Operator'].tolist()
@@ -170,17 +172,31 @@ def plot_basic(df,gen_tag,airline):
     ]
     
     if len(aircraft_list)>30:
-        p = figure(x_range=aircraft_list,plot_height=300,plot_width=30*len(aircraft_list),
+        p = figure(x_range=aircraft_list,plot_height=400,plot_width=40*len(aircraft_list),
             title="{airline} {gen_tag} SLA Bottom Tails".format(airline=airline,gen_tag=gen_tag,
             tooltips=TOOLTIPS))
-    elif len(aircraft_list)<4:
-        p = figure(x_range=aircraft_list,plot_height=300,plot_width=150*len(aircraft_list),
+        xlabel_rotation = pi/2
+        x_offset=4
+        y_offset=-40
+        label_font_size = '8pt'
+
+    elif len(aircraft_list)<6:
+        p = figure(x_range=aircraft_list,plot_height=400,plot_width=120*len(aircraft_list),
             title="{airline} {gen_tag} SLA Bottom Tails".format(airline=airline,gen_tag=gen_tag,
             tooltips=TOOLTIPS))
+        xlabel_rotation = 0
+        x_offset=-20
+        y_offset=-18
+        label_font_size = '10pt'
+
     else:
-        p = figure(x_range=aircraft_list,plot_height=300,plot_width=60*len(aircraft_list),
+        p = figure(x_range=aircraft_list,plot_height=400,plot_width=80*len(aircraft_list),
             title="{airline} {gen_tag} SLA Bottom Tails".format(airline=airline,gen_tag=gen_tag,
             tooltips=TOOLTIPS))
+        xlabel_rotation = 0
+        x_offset=-20
+        y_offset=-18
+        label_font_size = '10pt'
 
 
     
@@ -200,12 +216,14 @@ def plot_basic(df,gen_tag,airline):
     # 隐藏主轴标签
     p.yaxis.visible = False
 
+
+
     label_avail = LabelSet(x='aircraft_list', y='avail_decimal_list',\
         text='avail_percent_list',\
         source=source,\
         render_mode='canvas',\
-        text_font_size='6pt',angle=pi/2,text_color='white',\
-        x_offset=4, y_offset=-30)
+        text_font_size=label_font_size,angle=xlabel_rotation,text_color='white',\
+        x_offset=x_offset, y_offset=y_offset)
 
     p.add_layout(label_avail)
 
@@ -242,7 +260,7 @@ def plot_basic(df,gen_tag,airline):
     # 设置legend
     p.legend.orientation = "horizontal"
     p.legend.location = "top_left"
-    p.legend.label_text_font_size = "6pt"
+    p.legend.label_text_font_size = "8pt"
     p.legend.border_line_width = 0
     p.legend.border_line_color = "navy"
     p.legend.border_line_alpha = 0
@@ -381,7 +399,7 @@ def BokehChart(request):
     #df.to_csv('OpsData.csv',index=False)
 
     # 只对没有被exclud的数据进行处理
-    df_excluded = df.loc[df['excluded'] == 1]
+    df_excluded = df.loc[df['excluded'] != 0]
     df = df.loc[df['excluded'] == 0]
     #print(df.head())
 

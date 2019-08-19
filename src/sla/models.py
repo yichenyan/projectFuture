@@ -12,7 +12,7 @@ class DartOpsReport(models.Model):
     bc_gen = models.CharField(max_length=20)
     flight_id = models.IntegerField(null=True,unique=True)
     flight_num = models.CharField(default='0000', max_length=20)
-    excluded = models.BooleanField()
+    excluded = models.IntegerField(null=False)
     exclusion_reason = models.CharField(null=True, max_length=255)
     departure_airport = models.CharField(null=True, max_length=20)
     arrival_airport = models.CharField(null=True, max_length=20)
