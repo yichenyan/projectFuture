@@ -140,8 +140,6 @@ def plot_basic(df,gen_tag,airline):
     df_avail = df.loc[df['Availability_decimal'] <= .95]
     if df_avail.empty:
         return False
-
-
     
     # 在有符合条件的行的情况下
     operator_list = df_avail['Operator'].tolist()
@@ -170,7 +168,9 @@ def plot_basic(df,gen_tag,airline):
         ("Latency","@latency_list"),
         ("Pkt Loss","@packet_loss_list"),
     ]
-    
+
+
+    # 正式画图
     if len(aircraft_list)>30:
         p = figure(x_range=aircraft_list,plot_height=400,plot_width=40*len(aircraft_list),
             title="{airline} {gen_tag} SLA Bottom Tails".format(airline=airline,gen_tag=gen_tag,
@@ -328,8 +328,6 @@ def create_detailed_plots(df):
 
     return column(plot_list)
         
-
-
 def create_overview_plot(df):
 
     # 2. 用pandas对进行data cleaning
@@ -369,7 +367,6 @@ def create_overview_plot(df):
 
     #show(p)
     return p
-
 
 def BokehChart(request):
     """此函数对数据表进行data cleaning"""
